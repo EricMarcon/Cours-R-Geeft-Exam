@@ -1,0 +1,161 @@
+---
+title: "Examen R-Stats Geeft"
+author: "Vos noms"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+
+# Déroulement de l'examen
+
+Vous travaillerez à deux, de 14h à 17h au plus tard.
+Vous aurez accès au cours, à l'internet... 
+La seule exigence est que vous n'utilisiez pas d'aide extérieure.
+Vous travaillerez en binômes : prenez le temps de discuter de la façon dont vous traiterez les questions.
+
+Vous devrez répondre aux questions dans ce fichier en ajoutant du texte et du code.
+
+> Utilisez ce format pour le texte de vos réponses (sautez une ligne avant) et ajoutez le code dans des bouts de code standard:
+```{r}
+# Code
+```
+> Commencez chaque paragraphe par `> ` et tricotez souvent.
+
+
+Vous devez répondre aussi clairement que possible, en rédigeant vos réponses.
+Votre code doit être facile à lire, avec des commentaires quand c'est utile, formaté correctement (attention aux espaces, aux indentations, à la clarté des noms des objets, etc.).
+
+A la fin de votre travail, envoyez le fichier examen.Rmd à [eric.marcon@agroparistech.fr](mailto:eric.marcon@agroparistech.fr?subject=Examen R-Stats Geeft)
+
+
+Les données nécessaires se trouvent dans le sous-dossier `data`.
+
+L'examen comporte plusieurs questions à traiter :
+
+- Une régression du nombre d'espèces en fonction de la surface pour tester la relation d'Arrhenius,
+- Une ACP sur le climat de villes du monde entier,
+- Un exercice de programmation avec R pour démontrer le risque du triturage de données.
+
+
+
+# Relation d'Arrhenius
+
+La [relation d'Arrhenius](https://ericmarcon.github.io/MesuresBioDiv2/diversit%C3%A9-r%C3%A9gionale.html) (1921) prévoit que le nombre d'espèces d'un écosystème augmente avec sa surface à la puissance $z$ selon l'équation 
+$$S(A) = c A^z$$
+où $S(A)$ est le nombre d'espèces observées sur la surface $A$, $c$ est une constante qui dépend des écosystèmes et du taxon considéré, et $z$ est le paramètre d'intérêt.
+La valeur de $z$ a fait l'objet d'une abondance littérature : la valeur théorique est $0,26$ (Preston, 1962) pour des îles de taille variable.
+
+Les données disponibles (Johnson et Simberloff, 1974) sont le nombre d'espèces de plantes vasculaires (`species`) pour 42 îles britanniques en fonction de différents prédicteurs, incluant la surface de l'île en km^2^ (`area`).
+Elles se trouvent dans le fichier `britain_species.csv` (attention, c'est un fichier américain).
+
+
+## Modèle non logarithmique
+
+Estimez le modèle de base, dans lequel la variable explicative est $A^{0.26}$.
+Attention : son ordonnée à l'origine est obligatoirement nulle.
+
+Effectuez les vérifications des hypothèses, faites des figures, discutez.
+
+## Modèle logarithmique
+
+Transformez le modèle original (où $z$ n'est pas fixé) en en prenant le logarithme.
+Quel est l'intérêt de cette transformation ?
+
+Effectuez les vérifications des hypothèses, faites des figures, discutez le résultat.
+
+
+## Covariables
+
+La théorie prévoit que la biodiversité diminue avec la latitude, l'altitude et la distance au continent (qui est ici la Grande-Bretagne).
+
+Ajoutez ces variables (non transformées) au modèle logarithmique, et sélectionnez le meilleur modèle selon le critère AIC.
+Discutez.
+
+
+
+# Climat des villes
+
+Le fichier `cities_climate.csv` contient des données climatiques tirées de WorldClim pour 49 grandes villes.
+Ce sont :
+
+- `t_mean`: Température moyenne annuelle.
+- `t_diu`: Variation journalière de température, différence moyenne entre la température maximale et minimale dans un même mois.
+- `t_sd`: Variation saisonnière de température, écart-type de la température moyenne entre les mois.
+- `t_max`: Température maximale du mois le plus chaud.
+- `t_min`: Température minimale du mois le plus froid.
+- `p_ann`: Précipitation annuelle.
+- `p_max`: Précipitation du mois le plus humide.
+- `p_min`: Précipitation du mois le plus sec.
+- `p_cv`: Coefficient de variation (ratio écart-type / moyenne) de la précipitation entre les mois.
+
+Toutes les températures sont en °C et toutes les variables de précipitation (sauf le coefficient de variation) sont en mm.
+
+La question à traiter est celle des composantes les plus importantes du climat.
+L'ACP centrée et réduite est la bonne méthode ici.
+
+- Lisez le fichier de données (attention : il est américain) et inspectez-le.
+
+- la fonction `prcomp()` de *stats* a besoin d'un tableau avec des noms de ligne.
+Vous devez donc préparer les données :
+  - mettez de côté dans un vecteur les noms des villes,
+  - éliminez du dataframe les colonnes qui ne sont pas des variables climatiques (les 4 premières),
+  - nommez les lignes du dataframe : `rownames(nom_du_tableau) <- vecteur_des_noms_de_villes`.
+  
+  
+Faites l'ACP :
+
+- Affichez les valeurs propres, justifiez la sélection des deux premiers axes seulement,
+- Faites un biplot et interprétez : quels sont les gradients importants et les villes intéressantes ?
+
+
+
+# p-hacking
+
+Le [triturage de données](https://fr.wikipedia.org/wiki/Data_dredging) consiste à répéter des analyses de données jusqu'à ce qu'un résultat apparaisse.
+C'est un [problème majeur](https://www.youtube.com/watch?v=42QuXLucH3Q&ab_channel=Veritasium) de la recherche scientifique.
+
+L'objectif ici est d'en faire une démonstration en recherchant une corrélation entre des données qui n'en ont pas, en estimant un grand nombre de fois un modèle dont les données sont indépendantes et en comptant le nombre de fois où le modèle est estimé significatif.
+
+## Création d'un modèle sans corrélation
+
+- Créez deux vecteurs aléatoires `Y` et `X` constitués de tirages dans une loi normale centrée réduite (utilisez un paramètre pour fixer leur taille) et représentez-les dans une figure.
+  Pour la reproductibilité des résultats, utilisez une graine aléatoire juste avant les simulations :
+```{r}
+set.seed(1)
+```
+
+
+## Estimation du modèle
+
+- Estimez le modèle linéaire $Y \sim X$.
+  Résumez le résultat et discutez-le.
+  Est-il pertinent d'estimer le modèle standardisé ?
+  
+- Extrayez la p-value du coefficient reliant $X$ à $Y$.
+  Aide : la valeur se trouve dans le tableau `summary(nom_du_modele)$coefficients`.
+  Utilisez les crochets.
+
+
+## Répétition
+
+- Créez une fonction qui effectue cette opération, avec comme seul argument le nombre de points à tirer, et qui retourne la p-value.
+  Il faut que la fonction retourne un nombre.
+
+- Utilisez `replicate()` pour appeler cette fonction un grand nombre de fois.
+  Comptez le nombre de fois où la p-value est inférieure à 5%.
+  Quelle est la proportion de ces résultats "faux positifs" ?
+  Discutez.
+  
+  
+  
+  
+
+
+
+
+
+
+
