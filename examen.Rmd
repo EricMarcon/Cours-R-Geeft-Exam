@@ -226,6 +226,7 @@ Vous devez donc préparer les données :
   - éliminez du dataframe les colonnes qui ne sont pas des variables climatiques (les 4 premières),
   - nommez les lignes du dataframe : `rownames(nom_du_tableau) <- vecteur_des_noms_de_villes`.
   
+
 ```{r}
 # Nom des villes 
 villes <- cities_climate$city
@@ -245,7 +246,7 @@ cities_climate_pca <- prcomp(cities_climate, scale. = TRUE)
 
 - Affichez les valeurs propres, justifiez la sélection des deux premiers axes seulement,
 
-> Valeurs propres
+> Valeurs propres :
 
 ```{r}
 library("factoextra")
@@ -262,15 +263,21 @@ La troisième valeur propre est proche de la valeur moyenne en absence de struct
 ```{r}
 fviz_pca_biplot(cities_climate_pca, repel = TRUE)
 ```
+
 > Le premier axe est généré par les variables `t_sd` (la continentalité), et `t_min` (température la plus froide) et `p_max` (précipitations maximales.).
 De la gauche vers la droite, le gradient va donc de tropical à continental.
 Le deuxième axe représente les variables "inverses", `t_max` et `p_min`, la variabilité des précipitations et dans une moindre mesure la température diurne.
-Du bas vers le haut, le gradient va d'un climat chaud (température moyenne et maximale élevées), avec des précipitations inégales, à une climat froid avec au moins un mois sec.
+Les villes tropicales sont par exemple Mumbai et Abidjan.
+Les villes les plus continentales sont par exemple Moscou et Kaboul, mais deux groupes se distinguent, sans intermédiaires, entre les villes chaudes (sous l'axe 1) et froides (sous l'axe 1) : voir l'interprétation de l'axe 2.
+
+> Du bas vers le haut, le gradient va d'un climat chaud (température moyenne et maximale élevées), avec des précipitations inégales, à un climat froid avec sans mois très sec.
+La tendance est moins nette sur l'axe 2 que sur l'axe 1.
+La ville de Singapour se distingue par des précipitations abondantes toute l'année (`p_ann`), avec un minimum élevé.
+
 
 ```{r}
 fviz_pca_var(cities_climate_pca, repel = TRUE)
 ```
-
 
 
 # p-hacking
@@ -290,6 +297,7 @@ set.seed(1)
 points_n <- 100
 x <- rnorm(points_n)
 y <- rnorm(points_n)
+plot(y ~ x, asp = 1)
 ```
 
 
