@@ -51,20 +51,124 @@ La valeur de $z$ a fait l'objet d'une abondance littérature : la valeur théori
 Les données disponibles (Johnson et Simberloff, 1974) sont le nombre d'espèces de plantes vasculaires (`species`) pour 42 îles britanniques en fonction de différents prédicteurs, incluant la surface de l'île en km^2^ (`area`).
 Elles se trouvent dans le fichier `britain_species.csv` (attention, c'est un fichier américain).
 
+> Lecture des données :
+
+```{r}
+library("tidyverse")
+britain_species <- read_csv("data/britain_species.csv")
+```
+
+ 
 
 ## Modèle non logarithmique
 
 Estimez le modèle de base, dans lequel la variable explicative est $A^{0.26}$.
 Attention : son ordonnée à l'origine est obligatoirement nulle.
 
+
+> Aperçu de la relation :
+
+```{r}
+britain_species |> 
+  mutate(a_026 = area^0.26) ->
+  britain_species_a026
+
+britain_species_a026 |> 
+  ggplot(aes(x = a_026, y = species)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+> Le modèle est le suivant :
+
+```{r}
+britain_species_lm <- lm(species ~ 0 + a_026, data = britain_species_a026)
+summary(britain_species_lm)
+```
+> Vérification des hypothèses :
+Le point 6, la Grande Bretagne entière, pose problème parce que son erreur est grande.
+
+```{r}
+plot(britain_species_lm, which = 1)
+```
+
+```{r}
+plot(britain_species_lm, which = 2)
+```
+
+> Les résidus sont approximativement normaux mais le point 6 à nouveau, comme le point 41, pose problème.
+Le test de Shapiro ne rejette pas la normalité.
+
+```{r}
+shapiro.test(residuals(britain_species_lm))
+```
+
+> L'effet de levier du point 6 est disproportionné : comme il se trouve loin du reste du nuage de points, il tire la régression à lui seul.
+
+```{r}
+plot(britain_species_lm, which = 5)
+```
+
 Effectuez les vérifications des hypothèses, faites des figures, discutez.
+
+> En conclusion, le modèle respecte plus ou moins les hypothèses.
+Le seul paramètre est la pente de la droite, égale à 85 environ.
+La Grande-Bretagne entière a un effet de levier très grand, qui met en doute la conclusion.
+
 
 ## Modèle logarithmique
 
 Transformez le modèle original (où $z$ n'est pas fixé) en en prenant le logarithme.
 Quel est l'intérêt de cette transformation ?
 
+> La transformation logarithmique $\ln(S) = \beta_0 + \beta_1 \ln(A) $ permet d'estimer z au lieu de fixer sa valeur. 
+
+```{r}
+britain_species |> 
+  mutate(species_log = log(species), area_log = log(area)) ->
+  britain_species_log
+
+britain_species_log |> 
+  ggplot(aes(x = area_log, y = species_log)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+> D'autre part, elle étale les petites valeurs et rapproche la Grande Bretagne du reste du nuage de points, ce qui limite son effet de levier.
+
 Effectuez les vérifications des hypothèses, faites des figures, discutez le résultat.
+
+> Le modèle est le suivant :
+
+```{r}
+britain_species_loglm <- lm(species_log ~ area_log, data = britain_species_log)
+summary(britain_species_loglm)
+```
+> Vérification des hypothèses :
+Les résidus sont maintenant homogènes.
+
+```{r}
+plot(britain_species_loglm, which = 1)
+```
+
+```{r}
+plot(britain_species_loglm, which = 2)
+```
+
+> Le test de Shapiro rejette maintenant l'hypothèse de normalité.
+L'estimation de z sera correcte mais pas son intervalle de confiance.
+L'alternative est d'effectuer une régression sur les rangs mais la valeur de z ne sera pas utilisable.
+
+```{r}
+shapiro.test(residuals(britain_species_loglm))
+```
+
+> L'effet de levier du point 6 reste grand mais sa distance de Cook est petite : il influe beaucoup sur la régression mais ne perturbe pas son résultat : son résidu est presque nul.
+
+```{r}
+plot(britain_species_loglm, which = 5)
+```
+> La valeur de z finalement retenue est 0,20.
 
 
 ## Covariables
@@ -72,6 +176,16 @@ Effectuez les vérifications des hypothèses, faites des figures, discutez le r�
 La théorie prévoit que la biodiversité diminue avec la latitude, l'altitude et la distance au continent (qui est ici la Grande-Bretagne).
 
 Ajoutez ces variables (non transformées) au modèle logarithmique, et sélectionnez le meilleur modèle selon le critère AIC.
+
+> Modèle complet :
+
+```{r}
+library("MASS")
+stepAIC(lm(species_log ~ area_log + dist_britain + latitude + elevation, data = britain_species_log))
+```
+> Le modèle retenu par la méthode stepwise contient le logarithme de la surface et la latitude.
+z est estimé à 0,19 et le nombre d'espèces diminue avec la latitude.
+
 Discutez.
 
 
@@ -79,6 +193,14 @@ Discutez.
 # Climat des villes
 
 Le fichier `cities_climate.csv` contient des données climatiques tirées de WorldClim pour 49 grandes villes.
+
+> Lecture des données
+
+```{r}
+cities_climate <- read_csv("data/cities_climate.csv")
+```
+
+
 Ce sont :
 
 - `t_mean`: Température moyenne annuelle.
@@ -104,11 +226,50 @@ Vous devez donc préparer les données :
   - éliminez du dataframe les colonnes qui ne sont pas des variables climatiques (les 4 premières),
   - nommez les lignes du dataframe : `rownames(nom_du_tableau) <- vecteur_des_noms_de_villes`.
   
+```{r}
+# Nom des villes 
+villes <- cities_climate$city
+# Réduction du tableau
+cities_climate <- cities_climate[, -(1:4)]
+# Noms
+rownames(cities_climate) <- villes
+```
+
   
 Faites l'ACP :
 
+```{r}
+cities_climate_pca <- prcomp(cities_climate, scale. = TRUE)
+```
+
+
 - Affichez les valeurs propres, justifiez la sélection des deux premiers axes seulement,
+
+> Valeurs propres
+
+```{r}
+library("factoextra")
+fviz_eig(cities_climate_pca)
+```
+
+> Les deux premières composantes principales résument la majorité de l'information (près de 70%).
+La troisième valeur propre est proche de la valeur moyenne en absence de structuration des données (1/8) : nous retiendrons seulement les deux premiers axes.
+
 - Faites un biplot et interprétez : quels sont les gradients importants et les villes intéressantes ?
+
+> Biplot :
+
+```{r}
+fviz_pca_biplot(cities_climate_pca, repel = TRUE)
+```
+> Le premier axe est généré par les variables `t_sd` (la continentalité), et `t_min` (température la plus froide) et `p_max` (précipitations maximales.).
+De la gauche vers la droite, le gradient va donc de tropical à continental.
+Le deuxième axe représente les variables "inverses", `t_max` et `p_min`, la variabilité des précipitations et dans une moindre mesure la température diurne.
+Du bas vers le haut, le gradient va d'un climat chaud (température moyenne et maximale élevées), avec des précipitations inégales, à une climat froid avec au moins un mois sec.
+
+```{r}
+fviz_pca_var(cities_climate_pca, repel = TRUE)
+```
 
 
 
@@ -123,33 +284,88 @@ L'objectif ici est d'en faire une démonstration en recherchant une corrélation
 
 - Créez deux vecteurs aléatoires `Y` et `X` constitués de tirages dans une loi normale centrée réduite (utilisez un paramètre pour fixer leur taille) et représentez-les dans une figure.
   Pour la reproductibilité des résultats, utilisez une graine aléatoire juste avant les simulations :
+  
 ```{r}
 set.seed(1)
+points_n <- 100
+x <- rnorm(points_n)
+y <- rnorm(points_n)
 ```
 
 
 ## Estimation du modèle
 
 - Estimez le modèle linéaire $Y \sim X$.
+
+```{r}
+lm_xy <- lm(y ~ x)
+summary(lm_xy)
+```
+
+> Le modèle a une p-value globale proche de 1 et un R^2^ proche de zéro, ce qui est prévisible pour deux variables tirées indépendamment l'une de l'autre.
+
   Résumez le résultat et discutez-le.
   Est-il pertinent d'estimer le modèle standardisé ?
+  
+> Les données sont standardisées par construction.
   
 - Extrayez la p-value du coefficient reliant $X$ à $Y$.
   Aide : la valeur se trouve dans le tableau `summary(nom_du_modele)$coefficients`.
   Utilisez les crochets.
+  
+> La p-value du coefficient est :
+
+```{r}
+summary(lm_xy)$coefficients[2, 4]
+```
+
 
 
 ## Répétition
 
 - Créez une fonction qui effectue cette opération, avec comme seul argument le nombre de points à tirer, et qui retourne la p-value.
   Il faut que la fonction retourne un nombre.
+  
+> Le code de la fonction reprend tout ce qui a été écrit plus haut :
+
+```{r}
+p_value <- function(points_n) {
+  # Tirage
+  x <- rnorm(points_n)
+  y <- rnorm(points_n)
+  # Modèle
+  lm_xy <- lm(y ~ x)
+  # Retour de la p-value
+  return(summary(lm_xy)$coefficients[2, 4])
+}
+
+# Test de la fonction
+p_value(points_n)
+```
+
 
 - Utilisez `replicate()` pour appeler cette fonction un grand nombre de fois.
+
+```{r}
+simulations_n <- 1E3
+p_values <- replicate(simulations_n, p_value(points_n))
+```
+
   Comptez le nombre de fois où la p-value est inférieure à 5%.
+  
+```{r}
+alpha <- .05
+sum(p_values < alpha)
+```
   Quelle est la proportion de ces résultats "faux positifs" ?
+
+```{r}
+sum(p_values < alpha) / simulations_n
+```
+
   Discutez.
   
-  
+> La proportion de faux positifs est proche du seuil de risque choisi : c'est sa définition.
   
   
 
