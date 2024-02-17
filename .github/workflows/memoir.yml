@@ -30,7 +30,7 @@ jobs:
         run: |
           # Load MASS before knitting because multcomp loads MASS::select and hides dplyr::select
           install.packages("MASS") ; library("MASS")
-          install.packages("tidyverse", "factoextra")
+          install.packages(c("tidyverse", "factoextra"))
           Sys.setlocale("LC_TIME", "fr_FR")
           lapply(list.files(pattern="*.Rmd"), function(file) rmarkdown::render(file, "all"))
           memoiR::build_githubpages()
