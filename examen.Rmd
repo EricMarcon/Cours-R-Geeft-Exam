@@ -112,7 +112,7 @@ plot(britain_species_lm, which = 5)
 Effectuez les vérifications des hypothèses, faites des figures, discutez.
 
 > En conclusion, le modèle respecte plus ou moins les hypothèses.
-Le seul paramètre est la pente de la droite, égale à 85 environ.
+Le seul paramètre est la pente de la droite, égale à 85 environ (valeur non interprétable simplement parce que la surface est à la puissance 0,26).
 La Grande-Bretagne entière a un effet de levier très grand, qui met en doute la conclusion.
 
 
@@ -121,7 +121,11 @@ La Grande-Bretagne entière a un effet de levier très grand, qui met en doute l
 Transformez le modèle original (où $z$ n'est pas fixé) en en prenant le logarithme.
 Quel est l'intérêt de cette transformation ?
 
-> La transformation logarithmique $\ln(S) = \beta_0 + \beta_1 \ln(A) $ permet d'estimer z au lieu de fixer sa valeur. 
+> La transformation logarithmique 
+
+$\ln(S) = \beta_0 + \beta_1 \ln(A)$ 
+
+> permet d'estimer z au lieu de fixer sa valeur. 
 
 ```{r}
 britain_species |> 
@@ -168,7 +172,9 @@ shapiro.test(residuals(britain_species_loglm))
 ```{r}
 plot(britain_species_loglm, which = 5)
 ```
+
 > La valeur de z finalement retenue est 0,20.
+Quand la surface d'une île est multipliée par 10, le nombre d'espèces est multiplié par 2^0.2^, environ 1,6.
 
 
 ## Covariables
@@ -188,6 +194,19 @@ z est estimé à 0,19 et le nombre d'espèces diminue avec la latitude.
 
 Discutez.
 
+> L'AIC du modèle augmente énormément quand on retire la covariable latitude.
+On peut afficher le détail du modèle avec latitude pour le comparer au précédent.
+
+```{r}
+summary(lm(species_log ~ area_log + latitude, data = britain_species_log))
+```
+
+> La variance expliquée augmente beaucoup en ajoutant la latitude au modèle original : 72% au lieu de 48%
+La relation d'Arrhenius est définie pour des écosystèmes similaires, dont seule la taille varie.
+En Grande-Bretagne, la latitude est un déterminant important de la biodiversité : le climat varie énormément du nord au sud du pays.
+Après avoir contrôlé pour cette covariable essentielle, la relation d'Arrhenius est validée par les données, avec une puissance z égale à 0,19, inférieure à la valeur attendue.
+Une raison est peut-être que les surfaces disponibles pour les végétaux (non anthropisées) ne sont qu'une partie de la surface des îles : A est mal mesuré, et la perte de surface augmente avec la taille des îles (les petites îles sont inhabitées alors que la Grande-Bretagne entière est largement occupée par l'agriculture et l'urbanisation).
+L'étape suivante serait donc de préciser les mesures de surface.
 
 
 # Climat des villes
@@ -297,7 +316,10 @@ set.seed(1)
 points_n <- 100
 x <- rnorm(points_n)
 y <- rnorm(points_n)
+# Figure rapide
 plot(y ~ x, asp = 1)
+abline(h = 0)
+abline(v = 0)
 ```
 
 
@@ -362,7 +384,9 @@ p_values <- replicate(simulations_n, p_value(points_n))
   Comptez le nombre de fois où la p-value est inférieure à 5%.
   
 ```{r}
+# Seuil de risque
 alpha <- .05
+# Comptage
 sum(p_values < alpha)
 ```
   Quelle est la proportion de ces résultats "faux positifs" ?
@@ -374,12 +398,3 @@ sum(p_values < alpha) / simulations_n
   Discutez.
   
 > La proportion de faux positifs est proche du seuil de risque choisi : c'est sa définition.
-  
-  
-
-
-
-
-
-
-
